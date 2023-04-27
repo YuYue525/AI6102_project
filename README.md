@@ -1,5 +1,7 @@
 # AI6102_project
 
+The project aims to explore the ensemble model based on the task from https://www.kaggle.com/competitions/recognizing-faces-in-the-wild
+
 ## Command to run
 
 ```
