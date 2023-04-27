@@ -111,7 +111,7 @@ class SiameseNet(nn.Module):
     def __init__(self):
         super().__init__()
 
-        self.encoder = InceptionResnetV1(pretrained='vggface2')
+        self.encoder = InceptionResnetV1(pretrained = 'vggface2')
         
         emb_len = 512
         self.last = nn.Sequential(
@@ -148,7 +148,7 @@ def train():
         img1, img2, label = batch
         img1, img2, label = img1.to(device), img2.to(device), label.float().view(-1,1).to(device)
         output = net(img1, img2)
-        preds = output > 0.5
+        preds = output>0.5
         
         loss = criterion(output, label)
         loss.backward()
@@ -196,10 +196,14 @@ def validate():
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
-n_model = 10
+n_model = 20
 nets = []
 
-for model_i in n_model:
+checkpoints_path = "checkpoints/"
+if (os.path.exists(checkpoints_path)):
+    os.mkdir(checkpoints_path)
+
+for model_i in range(18, n_model):
 
     net = SiameseNet().to(device)
     
@@ -216,7 +220,7 @@ for model_i in n_model:
     num_epoch = 200
 
     best_val_loss = 1000
-    best_epoch = 0
+    best_val_acc = 0
 
     history = []
     accuracy = []
@@ -230,10 +234,13 @@ for model_i in n_model:
         
         if val_loss < best_val_loss:
             best_val_loss = val_loss
-            best_epoch = epoch
-            torch.torch.save(net.state_dict(), 'net_checkpoint_'+str(model_i)+'.pth')
+            torch.save(net.state_dict(), checkpoints_path + 'net_loss_'+str(model_i)+'.pth')
 
-    torch.save(net.state_dict(), 'net_full_training_'+str(model_i)+'.pth')
+        if val_acc > best_val_acc:
+            best_val_acc = val_acc
+            torch.save(net.state_dict(), checkpoints_path + 'net_acc_'+str(model_i)+'.pth')
+
+    torch.save(net.state_dict(), checkpoints_path + 'net_'+str(model_i)+'.pth')
 '''
 import matplotlib.pyplot as plt
 

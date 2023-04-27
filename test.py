@@ -76,8 +76,8 @@ test_transform = transforms.Compose([
                          std=[0.5, 0.5, 0.5])
 ])
 
-test_dataset = FamilyTestDataset(df = sample_submission, root_dir = img_root_dir, transform = test_transform)
-test_loader = DataLoader(test_dataset, shuffle = False, batch_size = batch_size)
+# test_dataset = FamilyTestDataset(df = sample_submission, root_dir = img_root_dir, transform = test_transform)
+# test_loader = DataLoader(test_dataset, shuffle = False, batch_size = batch_size)
 
 class SiameseNet(nn.Module):
     def __init__(self):
@@ -108,14 +108,20 @@ class SiameseNet(nn.Module):
         
         return x
         
-n_model = 1
+n_model = 20
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+checkpoints_path = './checkpoints/'
+keep_results = True
 
 for model_i in range(n_model):
-
+    
+    print("model", model_i, "...")
+    test_dataset = FamilyTestDataset(df = sample_submission, root_dir = img_root_dir, transform = test_transform)
+    test_loader = DataLoader(test_dataset, shuffle = False, batch_size = batch_size)
+    
     net = SiameseNet().to(device)
-    net.load_state_dict(torch.load('net_checkpoint_'+str(model_i)+'.pth'))
+    net.load_state_dict(torch.load(checkpoints_path + 'net_acc_'+str(model_i)+'.pth'))
     
     net.eval()
     for i, data in enumerate(test_loader, 0):
@@ -124,9 +130,11 @@ for model_i in range(n_model):
        
         output = torch.sigmoid(net(img0, img1))
 
-        sample_submission.loc[row.item(),'is_related'] = output[0].item()
+        sample_submission.loc[row.item(),'is_related_' + str(model_i)] = output[0].item()
         
-    sample_submission.drop(columns =["Person1","Person2"], inplace = True)
-    
-    sample_submission.to_csv('output.csv',index=False)
+sample_submission['is_related'] = sum([sample_submission['is_related_' + str(x)] for x in range(n_model)]) / n_model
+sample_submission.drop(columns = ["Person1","Person2"], inplace = True)
+if not keep_results:
+    sample_submission.drop(columns = ["is_related_" + str(x) for x in range(n_model)], inplace = True)
+sample_submission.to_csv('output.csv',index=False)
         
